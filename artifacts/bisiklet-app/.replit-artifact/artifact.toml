@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Bisiklet Takip"
+version = "1.0.0"
+id = "artifacts/bisiklet-app"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24317
+
+[services.development]
+run = "pnpm --filter @workspace/bisiklet-app run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/bisiklet-app", "run", "build" ]
+publicDir = "artifacts/bisiklet-app/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24317"
+BASE_PATH = "/"

@@ -3,13 +3,22 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Bisiklet Takip Uygulaması API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: bikes
+    description: Bisiklet yönetimi
+  - name: rides
+    description: Sürüş kayıtları
+  - name: maintenance
+    description: Bakım kayıtları
+  - name: stats
+    description: İstatistikler
+
 paths:
   /healthz:
     get:
@@ -24,6 +33,292 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /bikes:
+    get:
+      operationId: listBikes
+      tags: [bikes]
+      summary: Tüm bisikletleri listele
+      responses:
+        "200":
+          description: Bisiklet listesi
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Bike"
+    post:
+      operationId: createBike
+      tags: [bikes]
+      summary: Yeni bisiklet ekle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBikeBody"
+      responses:
+        "201":
+          description: Bisiklet oluşturuldu
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Bike"
+
+  /bikes/{id}:
+    get:
+      operationId: getBike
+      tags: [bikes]
+      summary: Bisiklet detayı
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Bisiklet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Bike"
+        "404":
+          description: Bulunamadı
+    patch:
+      operationId: updateBike
+      tags: [bikes]
+      summary: Bisiklet güncelle
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBikeBody"
+      responses:
+        "200":
+          description: Güncellendi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Bike"
+    delete:
+      operationId: deleteBike
+      tags: [bikes]
+      summary: Bisiklet sil
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Silindi
+
+  /rides:
+    get:
+      operationId: listRides
+      tags: [rides]
+      summary: Tüm sürüşleri listele
+      parameters:
+        - name: bikeId
+          in: query
+          required: false
+          schema:
+            type: ["integer", "null"]
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: Sürüş listesi
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Ride"
+    post:
+      operationId: createRide
+      tags: [rides]
+      summary: Yeni sürüş kaydet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRideBody"
+      responses:
+        "201":
+          description: Sürüş kaydedildi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ride"
+
+  /rides/{id}:
+    get:
+      operationId: getRide
+      tags: [rides]
+      summary: Sürüş detayı
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Sürüş
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ride"
+        "404":
+          description: Bulunamadı
+    patch:
+      operationId: updateRide
+      tags: [rides]
+      summary: Sürüş güncelle
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRideBody"
+      responses:
+        "200":
+          description: Güncellendi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ride"
+    delete:
+      operationId: deleteRide
+      tags: [rides]
+      summary: Sürüş sil
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Silindi
+
+  /maintenance:
+    get:
+      operationId: listMaintenance
+      tags: [maintenance]
+      summary: Bakım kayıtlarını listele
+      parameters:
+        - name: bikeId
+          in: query
+          required: false
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: Bakım listesi
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MaintenanceRecord"
+    post:
+      operationId: createMaintenance
+      tags: [maintenance]
+      summary: Bakım kaydı ekle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMaintenanceBody"
+      responses:
+        "201":
+          description: Bakım kaydı oluşturuldu
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MaintenanceRecord"
+
+  /maintenance/{id}:
+    delete:
+      operationId: deleteMaintenance
+      tags: [maintenance]
+      summary: Bakım kaydı sil
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Silindi
+
+  /stats/summary:
+    get:
+      operationId: getStatsSummary
+      tags: [stats]
+      summary: Genel istatistik özeti
+      responses:
+        "200":
+          description: Özet istatistikler
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatsSummary"
+
+  /stats/weekly:
+    get:
+      operationId: getWeeklyStats
+      tags: [stats]
+      summary: Haftalık sürüş istatistikleri (son 8 hafta)
+      responses:
+        "200":
+          description: Haftalık istatistikler
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WeeklyStat"
+
+  /stats/monthly:
+    get:
+      operationId: getMonthlyStats
+      tags: [stats]
+      summary: Aylık sürüş istatistikleri (son 12 ay)
+      responses:
+        "200":
+          description: Aylık istatistikler
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MonthlyStat"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +329,306 @@ components:
       required:
         - status
 
+    Bike:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        brand:
+          type: string
+        model:
+          type: string
+        type:
+          type: string
+          description: "road, mountain, hybrid, electric, gravel"
+        color:
+          type: ["string", "null"]
+        purchaseDate:
+          type: ["string", "null"]
+        totalKm:
+          type: number
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - name
+        - brand
+        - model
+        - type
+        - color
+        - purchaseDate
+        - totalKm
+        - notes
+        - createdAt
+        - updatedAt
+
+    CreateBikeBody:
+      type: object
+      properties:
+        name:
+          type: string
+        brand:
+          type: string
+        model:
+          type: string
+        type:
+          type: string
+        color:
+          type: ["string", "null"]
+        purchaseDate:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+      required:
+        - name
+        - brand
+        - model
+        - type
+
+    UpdateBikeBody:
+      type: object
+      properties:
+        name:
+          type: ["string", "null"]
+        brand:
+          type: ["string", "null"]
+        model:
+          type: ["string", "null"]
+        type:
+          type: ["string", "null"]
+        color:
+          type: ["string", "null"]
+        purchaseDate:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+
+    Ride:
+      type: object
+      properties:
+        id:
+          type: integer
+        bikeId:
+          type: integer
+        bikeName:
+          type: ["string", "null"]
+        title:
+          type: string
+        date:
+          type: string
+        distanceKm:
+          type: number
+        durationMinutes:
+          type: integer
+        avgSpeedKmh:
+          type: ["number", "null"]
+        maxSpeedKmh:
+          type: ["number", "null"]
+        elevationGainM:
+          type: ["integer", "null"]
+        calories:
+          type: ["integer", "null"]
+        notes:
+          type: ["string", "null"]
+        routeType:
+          type: ["string", "null"]
+          description: "city, mountain, trail, road"
+        createdAt:
+          type: string
+      required:
+        - id
+        - bikeId
+        - bikeName
+        - title
+        - date
+        - distanceKm
+        - durationMinutes
+        - avgSpeedKmh
+        - maxSpeedKmh
+        - elevationGainM
+        - calories
+        - notes
+        - routeType
+        - createdAt
+
+    CreateRideBody:
+      type: object
+      properties:
+        bikeId:
+          type: integer
+        title:
+          type: string
+        date:
+          type: string
+        distanceKm:
+          type: number
+        durationMinutes:
+          type: integer
+        avgSpeedKmh:
+          type: ["number", "null"]
+        maxSpeedKmh:
+          type: ["number", "null"]
+        elevationGainM:
+          type: ["integer", "null"]
+        calories:
+          type: ["integer", "null"]
+        notes:
+          type: ["string", "null"]
+        routeType:
+          type: ["string", "null"]
+      required:
+        - bikeId
+        - title
+        - date
+        - distanceKm
+        - durationMinutes
+
+    UpdateRideBody:
+      type: object
+      properties:
+        title:
+          type: ["string", "null"]
+        date:
+          type: ["string", "null"]
+        distanceKm:
+          type: ["number", "null"]
+        durationMinutes:
+          type: ["integer", "null"]
+        avgSpeedKmh:
+          type: ["number", "null"]
+        maxSpeedKmh:
+          type: ["number", "null"]
+        elevationGainM:
+          type: ["integer", "null"]
+        calories:
+          type: ["integer", "null"]
+        notes:
+          type: ["string", "null"]
+        routeType:
+          type: ["string", "null"]
+
+    MaintenanceRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+        bikeId:
+          type: integer
+        bikeName:
+          type: ["string", "null"]
+        type:
+          type: string
+          description: "tire, chain, brake, gear, service, other"
+        description:
+          type: string
+        date:
+          type: string
+        cost:
+          type: ["number", "null"]
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - bikeId
+        - bikeName
+        - type
+        - description
+        - date
+        - cost
+        - notes
+        - createdAt
+
+    CreateMaintenanceBody:
+      type: object
+      properties:
+        bikeId:
+          type: integer
+        type:
+          type: string
+        description:
+          type: string
+        date:
+          type: string
+        cost:
+          type: ["number", "null"]
+        notes:
+          type: ["string", "null"]
+      required:
+        - bikeId
+        - type
+        - description
+        - date
+
+    StatsSummary:
+      type: object
+      properties:
+        totalRides:
+          type: integer
+        totalKm:
+          type: number
+        totalMinutes:
+          type: integer
+        totalCalories:
+          type: integer
+        avgSpeedKmh:
+          type: number
+        longestRideKm:
+          type: number
+        thisMonthKm:
+          type: number
+        thisMonthRides:
+          type: integer
+        totalBikes:
+          type: integer
+      required:
+        - totalRides
+        - totalKm
+        - totalMinutes
+        - totalCalories
+        - avgSpeedKmh
+        - longestRideKm
+        - thisMonthKm
+        - thisMonthRides
+        - totalBikes
+
+    WeeklyStat:
+      type: object
+      properties:
+        week:
+          type: string
+        rides:
+          type: integer
+        km:
+          type: number
+        minutes:
+          type: integer
+      required:
+        - week
+        - rides
+        - km
+        - minutes
+
+    MonthlyStat:
+      type: object
+      properties:
+        month:
+          type: string
+        rides:
+          type: integer
+        km:
+          type: number
+        minutes:
+          type: integer
+      required:
+        - month
+        - rides
+        - km
+        - minutes
