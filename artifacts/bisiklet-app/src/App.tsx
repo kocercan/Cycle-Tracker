@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { QueryClient, QueryClientProvider, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { WouterRouter } from "wouter";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -13,6 +12,15 @@ const api = {
   async post(path: string, body: unknown) {
     const r = await fetch(`${BASE}/api${path}`, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+  },
+  async patch(path: string, body: unknown) {
+    const r = await fetch(`${BASE}/api${path}`, {
+      method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
@@ -36,18 +44,20 @@ type Ride = {
 
 const DEFAULT_BIKE_ID = 1;
 
-function RideForm({ onClose }: { onClose: () => void }) {
+function RideForm({ onClose, editRide }: { onClose: () => void; editRide?: Ride }) {
   const qc = useQueryClient();
+  const isEdit = !!editRide;
+
   const [form, setForm] = useState({
-    title: "",
-    date: new Date().toISOString().split("T")[0],
-    distanceKm: "",
-    durationMinutes: "",
-    notes: "",
+    title: editRide?.title ?? "",
+    date: editRide?.date ?? new Date().toISOString().split("T")[0],
+    distanceKm: editRide ? String(editRide.distanceKm) : "",
+    durationMinutes: editRide ? String(editRide.durationMinutes) : "",
+    notes: editRide?.notes ?? "",
   });
   const [error, setError] = useState("");
 
-  const mutation = useMutation({
+  const createMutation = useMutation({
     mutationFn: () =>
       api.post("/rides", {
         bikeId: DEFAULT_BIKE_ID,
@@ -59,11 +69,28 @@ function RideForm({ onClose }: { onClose: () => void }) {
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["rides"] });
-      qc.invalidateQueries({ queryKey: ["summary"] });
       onClose();
     },
     onError: (e: Error) => setError(e.message),
   });
+
+  const editMutation = useMutation({
+    mutationFn: () =>
+      api.patch(`/rides/${editRide!.id}`, {
+        title: form.title || "Sürüş",
+        date: form.date,
+        distanceKm: parseFloat(form.distanceKm),
+        durationMinutes: parseInt(form.durationMinutes),
+        notes: form.notes || null,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["rides"] });
+      onClose();
+    },
+    onError: (e: Error) => setError(e.message),
+  });
+
+  const isPending = createMutation.isPending || editMutation.isPending;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,13 +98,15 @@ function RideForm({ onClose }: { onClose: () => void }) {
       setError("Mesafe ve süre zorunludur.");
       return;
     }
-    mutation.mutate();
+    isEdit ? editMutation.mutate() : createMutation.mutate();
   };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-5">Yeni Sürüş Ekle</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-5">
+          {isEdit ? "Sürüşü Düzenle" : "Yeni Sürüş Ekle"}
+        </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Başlık</label>
@@ -144,10 +173,10 @@ function RideForm({ onClose }: { onClose: () => void }) {
             </button>
             <button
               type="submit"
-              disabled={mutation.isPending}
+              disabled={isPending}
               className="flex-1 bg-orange-500 text-white rounded-lg py-2 text-sm font-semibold hover:bg-orange-600 disabled:opacity-60"
             >
-              {mutation.isPending ? "Kaydediliyor..." : "Kaydet"}
+              {isPending ? "Kaydediliyor..." : isEdit ? "Guncelle" : "Kaydet"}
             </button>
           </div>
         </form>
@@ -156,7 +185,7 @@ function RideForm({ onClose }: { onClose: () => void }) {
   );
 }
 
-function RideCard({ ride, onDelete }: { ride: Ride; onDelete: () => void }) {
+function RideCard({ ride, onEdit, onDelete }: { ride: Ride; onEdit: () => void; onDelete: () => void }) {
   const hrs = Math.floor(ride.durationMinutes / 60);
   const mins = ride.durationMinutes % 60;
   const duration = hrs > 0 ? `${hrs}s ${mins}dk` : `${mins}dk`;
@@ -195,15 +224,26 @@ function RideCard({ ride, onDelete }: { ride: Ride; onDelete: () => void }) {
           <p className="text-xs text-gray-400">km/s</p>
         </div>
       </div>
-      <button
-        onClick={onDelete}
-        className="ml-1 text-gray-300 hover:text-red-400 transition-colors flex-shrink-0"
-        title="Sil"
-      >
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
+      <div className="flex gap-1 ml-1 flex-shrink-0">
+        <button
+          onClick={onEdit}
+          className="text-gray-300 hover:text-orange-400 transition-colors p-1"
+          title="Duzenle"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 1 1 3.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+          </svg>
+        </button>
+        <button
+          onClick={onDelete}
+          className="text-gray-300 hover:text-red-400 transition-colors p-1"
+          title="Sil"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
     </div>
   );
 }
@@ -211,6 +251,7 @@ function RideCard({ ride, onDelete }: { ride: Ride; onDelete: () => void }) {
 function App() {
   const qc = useQueryClient();
   const [showForm, setShowForm] = useState(false);
+  const [editingRide, setEditingRide] = useState<Ride | undefined>(undefined);
 
   const { data: rides = [], isLoading } = useQuery<Ride[]>({
     queryKey: ["rides"],
@@ -229,9 +270,16 @@ function App() {
   const totalHrs = Math.floor(totalMinutes / 60);
   const totalMins = totalMinutes % 60;
 
+  const closeForm = () => {
+    setShowForm(false);
+    setEditingRide(undefined);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {showForm && <RideForm onClose={() => setShowForm(false)} />}
+      {(showForm || editingRide) && (
+        <RideForm onClose={closeForm} editRide={editingRide} />
+      )}
 
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between">
@@ -300,6 +348,7 @@ function App() {
                 <RideCard
                   key={ride.id}
                   ride={ride}
+                  onEdit={() => setEditingRide(ride)}
                   onDelete={() => deleteMutation.mutate(ride.id)}
                 />
               ))}
